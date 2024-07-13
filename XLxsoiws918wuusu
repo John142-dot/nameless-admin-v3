@@ -1,0 +1,223 @@
+-- Credit me when u remake;)
+
+local NotificationHolder = loadstring(game:HttpGet("https://raw.githubusercontent.com/BocusLuke/UI/main/STX/Module.Lua"))()
+local Notification = loadstring(game:HttpGet("https://raw.githubusercontent.com/BocusLuke/UI/main/STX/Client.Lua"))()
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Nameless Executor V2"
+ScreenGui.Parent = game.CoreGui
+
+local Executor = Instance.new("Frame")
+Executor.Name = "Executor"
+Executor.Parent = ScreenGui
+Executor.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Executor.BorderSizePixel = 0
+Executor.Position = UDim2.new(0.5, -250, 0.5, -150)
+Executor.Size = UDim2.new(0, 500, 0, 300)
+Executor.Active = true
+Executor.Draggable = true
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Parent = Executor
+Title.AnchorPoint = Vector2.new(0.5, 0)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.BorderSizePixel = 0
+Title.Position = UDim2.new(0.5, 0, 0, 0)
+Title.Size = UDim2.new(0.96, 0, 0.1, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "Nameless Executor V2"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 24
+Title.TextWrapped = true
+
+Notification:Notify(
+    {Title = "Welcome!", Description = "Nameless Executor V2 has loaded."},
+    {OutlineColor = Color3.fromRGB(80, 80, 80), Time = 5, Type = "default"}
+)
+
+local Editor = Instance.new("TextBox")
+Editor.Name = "Editor"
+Editor.Parent = Executor
+Editor.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Editor.BorderSizePixel = 0
+Editor.Position = UDim2.new(0.02, 0, 0.15, 0)
+Editor.Size = UDim2.new(0.96, 0, 0.5, 0)
+Editor.MultiLine = true
+Editor.Text = ""
+Editor.TextColor3 = Color3.fromRGB(255, 255, 255)
+Editor.TextSize = 18
+Editor.Font = Enum.Font.Code
+Editor.PlaceholderText = "Insert Lua code or loadstring(script) here."
+Editor.TextWrapped = true
+Editor.ClearTextOnFocus = false
+
+local HighlightedEditor = Instance.new("TextLabel")
+HighlightedEditor.Name = "HighlightedEditor"
+HighlightedEditor.Parent = Executor
+HighlightedEditor.BackgroundTransparency = 1
+HighlightedEditor.Position = Editor.Position
+HighlightedEditor.Size = Editor.Size
+HighlightedEditor.Font = Enum.Font.Code
+HighlightedEditor.TextSize = 18
+HighlightedEditor.TextWrapped = true
+HighlightedEditor.TextXAlignment = Enum.TextXAlignment.Left
+HighlightedEditor.TextYAlignment = Enum.TextYAlignment.Top
+HighlightedEditor.TextColor3 = Color3.fromRGB(255, 255, 255)
+HighlightedEditor.ZIndex = Editor.ZIndex - 1
+
+Editor:GetPropertyChangedSignal("Text"):Connect(function()
+    HighlightSyntax(Editor.Text, HighlightedEditor)
+end)
+
+local function CreateButton(text, position, size, backgroundColor)
+    local button = Instance.new("TextButton")
+    button.BackgroundColor3 = backgroundColor
+    button.BorderSizePixel = 0
+    button.Position = position
+    button.Size = size
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 18
+    button.Font = Enum.Font.SourceSans
+    button.Parent = Executor
+    return button
+end
+
+local ExecuteButton = CreateButton("Execute", UDim2.new(0.02, 0, 0.68, 0), UDim2.new(0.22, 0, 0.10, 0), Color3.fromRGB(45, 45, 45))
+local ClearButton = CreateButton("Clear", UDim2.new(0.26, 0, 0.68, 0), UDim2.new(0.22, 0, 0.10, 0), Color3.fromRGB(45, 45, 45))
+local InjectButton = CreateButton("Inject", UDim2.new(0.50, 0, 0.68, 0), UDim2.new(0.22, 0, 0.10, 0), Color3.fromRGB(45, 45, 45))
+local LoadScriptButton = CreateButton("Load Script", UDim2.new(0.74, 0, 0.68, 0), UDim2.new(0.22, 0, 0.10, 0), Color3.fromRGB(45, 45, 45))
+
+local Output = Instance.new("TextLabel")
+Output.Name = "Output"
+Output.Parent = Executor
+Output.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Output.BorderSizePixel = 0
+Output.Position = UDim2.new(0.02, 0, 0.80, 0)
+Output.Size = UDim2.new(0.96, 0, 0.18, 0)
+Output.TextColor3 = Color3.fromRGB(255, 255, 255)
+Output.TextSize = 16
+Output.TextWrapped = true
+Output.Text = "Feel free to execute Lua scripts!"
+Output.Font = Enum.Font.SourceSans
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(120, 50, 50)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Position = UDim2.new(0.5, 250, 0.5, -150)
+ToggleButton.Size = UDim2.new(0, 30, 0, 30)
+ToggleButton.Text = "X"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 18
+ToggleButton.Font = Enum.Font.SourceSans
+
+local injected = false
+
+local function ExecuteScript(script)
+    if not injected then
+        Output.Text = "Injection needed first."
+        return
+    end
+
+    local maxChunkSize = 65536  -- Maximum chunk size for loadstring in Lua
+    local scriptLength = #script
+    local startPos = 1
+
+    Output.Text = "Executing script..."
+
+    while startPos <= scriptLength do
+        local endPos = math.min(startPos + maxChunkSize - 1, scriptLength)
+        local chunk = script:sub(startPos, endPos)
+        
+        local f, err = loadstring(chunk)
+        if f then
+            local success, result = pcall(f)
+            if not success then
+                Output.Text = "Execution error: " .. tostring(result)
+                return
+            end
+        else
+            Output.Text = "Syntax error: " .. tostring(err)
+            return
+        end
+
+        startPos = endPos + 1
+    end
+
+    Output.Text = "Execution successful."
+end
+
+local API_URL = "http://ww12.shadowcheats.com/?usid=16&utid=33512958268"
+
+local function InjectScriptFromAPI()
+    Output.Text = "Checking whitelist..."
+    local success, response = pcall(game.HttpGet, game, API_URL)
+    if success then
+        local scriptContent = response -- Assuming the API response structure is directly the script content
+        injected = true
+        Output.Text = "Successfully injected."
+    else
+        Output.Text = "Failed to fetch script from API."
+    end
+end
+
+local function ExecuteScriptFromURL(url)
+    local success, script = pcall(function()
+        return game:HttpGet(url)
+    end)
+
+    if success then
+        local f, err = loadstring(script)
+        if f then
+            local success, result = pcall(f)
+            if not success then
+                Output.Text = "Execution error: " .. tostring(result)
+            else
+                Output.Text = "Execution successful."
+            end
+        else
+            Output.Text = "Syntax error: " .. tostring(err)
+        end
+    else
+        Output.Text = "Failed to fetch script from URL."
+    end
+end
+
+local function ClearScript()
+    Editor.Text = ""
+    Output.Text = "Execute more scripts"
+    injected = false
+end
+
+local function ToggleUI()
+    Executor.Visible = not Executor.Visible
+end
+
+ExecuteButton.MouseButton1Click:Connect(function()
+    ExecuteScript(Editor.Text)
+end)
+
+ClearButton.MouseButton1Click:Connect(function()
+    ClearScript()
+end)
+
+InjectButton.MouseButton1Click:Connect(function()
+    InjectScriptFromAPI()
+end)
+
+LoadScriptButton.MouseButton1Click:Connect(function()
+    local url = "https://pastefy.app/VMGiiSJe/raw"  -- Replace with your actual script URL
+    ExecuteScriptFromURL(url)
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    ToggleUI()
+end)
+
+function HighlightSyntax(text, label)
+    local highlightedText = text:gsub("loadstring", '<font color="rgb(255, 165, 255)">loadstring</font>')
+    label.Text = highlightedText
+end
